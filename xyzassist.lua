@@ -1,5 +1,5 @@
 -- language: Luau, target: Roblox Xyz PvP, Xeno compatible
-print("[xyzassist] Ultra Minimal Loading...")
+print("[xyzassist] Sound & Image Fix Loaded")
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -7,6 +7,7 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
+local SoundService = game:GetService("SoundService")
 
 local playerGui = LocalPlayer:WaitForChild("PlayerGui")
 if playerGui:FindFirstChild("XyzAssistGui") then playerGui.XyzAssistGui:Destroy() end
@@ -21,7 +22,26 @@ local Config = {
 }
 local Aiming = false
 
--- Główne okno
+-- ================= DŹWIĘKI =================
+local SoundOn = Instance.new("Sound")
+SoundOn.SoundId = "rbxassetid://131961136" -- Dźwięk "Ping" (włączenie)
+SoundOn.Volume = 0.5
+SoundOn.Parent = SoundService
+
+local SoundOff = Instance.new("Sound")
+SoundOff.SoundId = "rbxassetid://131960992" -- Dźwięk "Click" (wyłączenie)
+SoundOff.Volume = 0.5
+SoundOff.Parent = SoundService
+
+local function playSound(isOn)
+    if isOn then
+        SoundOn:Play()
+    else
+        SoundOff:Play()
+    end
+end
+
+-- ================= GUI (Używamy Obrazków zamiast Tekstu) =================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "XyzAssistGui"
 ScreenGui.ResetOnSpawn = false
@@ -34,19 +54,21 @@ Main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Main.BorderSizePixel = 0
 Main.Active = true
 Main.Draggable = true
-Main.Visible = true -- Od razu widoczne
+Main.Visible = true 
 Main.Parent = ScreenGui
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 8)
 
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Title.Text = "XYZ ASSIST"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 16
-Title.Parent = Main
-Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 8)
+-- Nagłówek jako obrazek (żeby Xeno nie miał problemu z tekstem)
+local TitleImage = Instance.new("ImageLabel")
+TitleImage.Size = UDim2.new(1, 0, 0, 40)
+TitleImage.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+TitleImage.Image = "rbxassetid://0" -- Zostawiamy puste, jeśli obrazek nie działa, użyjemy tekstu awaryjnie
+TitleImage.Text = "XYZ ASSIST"
+TitleImage.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleImage.Font = Enum.Font.SourceSansBold
+TitleImage.TextSize = 16
+TitleImage.Parent = Main
+Instance.new("UICorner", TitleImage).CornerRadius = UDim.new(0, 8)
 
 -- Przyciski
 local function makeBtn(text, yPos, key)
@@ -63,8 +85,8 @@ local function makeBtn(text, yPos, key)
     return btn
 end
 
-local aimBtn = makeBtn("Aimbot: ON", 40, "9")
-local hbBtn = makeBtn("Hitbox: OFF", 85, "8")
+local aimBtn = makeBtn("Aimbot: ON", 50, "9")
+local hbBtn = makeBtn("Hitbox: OFF", 95, "8")
 
 local function updateUI()
     aimBtn.Text = "Aimbot: " .. (Config.Aimbot and "ON" or "OFF") .. " [9]"
@@ -73,27 +95,40 @@ local function updateUI()
     hbBtn.TextColor3 = Config.Hitbox and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 255)
 end
 
-aimBtn.MouseButton1Click:Connect(function() Config.Aimbot = not Config.Aimbot; updateUI() end)
-hbBtn.MouseButton1Click:Connect(function() Config.Hitbox = not Config.Hitbox; updateUI() end)
+aimBtn.MouseButton1Click:Connect(function() 
+    Config.Aimbot = not Config.Aimbot
+    playSound(Config.Aimbot)
+    updateUI() 
+end)
+
+hbBtn.MouseButton1Click:Connect(function() 
+    Config.Hitbox = not Config.Hitbox
+    playSound(Config.Hitbox)
+    updateUI() 
+end)
 
 -- Sterowanie klawiszami
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
     if input.KeyCode == Enum.KeyCode.Seven then
         Main.Visible = not Main.Visible
+        playSound(Main.Visible)
     end
     if input.KeyCode == Enum.KeyCode.Nine then
         Config.Aimbot = not Config.Aimbot
+        playSound(Config.Aimbot)
         updateUI()
     end
     if input.KeyCode == Enum.KeyCode.Eight then
         Config.Hitbox = not Config.Hitbox
+        playSound(Config.Hitbox)
         updateUI()
     end
     if input.KeyCode == Enum.KeyCode.Six then
         Config.Aimbot = false
         Config.Hitbox = false
         Main.Visible = false
+        playSound(false)
         updateUI()
     end
     if input.UserInputType == Config.AimKey then Aiming = true end
