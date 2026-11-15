@@ -1,13 +1,12 @@
--- language: Luau, target: Roblox Xyz PvP, executor required
--- xyzassist v3.0.0 — Silent Aim, ESP, Movement, Prediction
-_G.XYZASSIST_VERSION = "3.0.0"
+-- language: Luau, target: Roblox Xyz PvP, Xeno compatible
+-- xyzassist v3.1.0 — Xeno Fixes (PlayerGui, pcall, drawing safe)
+_G.XYZASSIST_VERSION = "3.1.0"
 print("[xyzassist] loaded v" .. _G.XYZASSIST_VERSION)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
-local CoreGui = game:GetService("CoreGui")
 local HttpService = game:GetService("HttpService")
 
 local LocalPlayer = Players.LocalPlayer
@@ -20,53 +19,49 @@ local DefaultState = {
     FOV = 150,
     Smoothness = 0.15,
     Prediction = 0.15,
-    SilentAim = false,
-    SilentAimPart = "Head",
-    
-    ESP = true,
-    ESPBox = true,
-    ESPName = true,
-    ESPHealth = true,
-    ESPTeamCheck = true,
-    
+    ESPBox = false,
+    ESPName = false,
+    ESPHealth = false,
     Hitbox = true,
     HitboxSize = 6,
-    
     WallCheck = true,
     TeamCheck = true,
     FOVCircle = true,
-    
     WalkSpeed = 16,
     JumpPower = 50,
-    
     AutoClicker = false,
-    AutoClickDelay = 0.1,
-    
     AimKey = Enum.UserInputType.MouseButton2,
 }
 
-local State = {}
-if isfile and isfile(SettingsFile) then
-    local ok, data = pcall(function() return HttpService:JSONDecode(readfile(SettingsFile)) end)
+-- Bezpieczne ładowanie ustawień (Xeno może nie mieć isfile/readfile)
+local State = table.clone(DefaultState)
+if isfile and readfile and HttpService then
+    local ok, data = pcall(function() 
+        if isfile(SettingsFile) then
+            return HttpService:JSONDecode(readfile(SettingsFile)) 
+        end
+    end)
     if ok and type(data) == "table" then
-        for k, v in pairs(DefaultState) do State[k] = data[k] ~= nil and data[k] or v end
-    else State = table.clone(DefaultState) end
-else State = table.clone(DefaultState) end
-
-local function saveSettings()
-    if writefile then pcall(function() writefile(SettingsFile, HttpService:JSONEncode(State)) end) end
+        for k, v in pairs(DefaultState) do 
+            if data[k] ~= nil then State[k] = data[k] end 
+        end
+    end
 end
 
--- Czyszczenie
-if CoreGui:FindFirstChild("XyzAssistGui") then CoreGui.XyzAssistGui:Destroy() end
-if _G.XyzFovCircle then _G.XyzFovCircle:Remove() end
-if _G.XyzESPDrawings then for _, v in pairs(_G.XyzESPDrawings) do v:Remove() end _G.XyzESPDrawings = {} end
+local function saveSettings()
+    if writefile and HttpService then 
+        pcall(function() writefile(SettingsFile, HttpService:JSONEncode(State)) end) 
+    end
+end
 
--- ================= INTERFEJS =================
+-- ================= INTERFEJS (PlayerGui Fix) =================
+local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+if playerGui:FindFirstChild("XyzAssistGui") then playerGui.XyzAssistGui:Destroy() end
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "XyzAssistGui"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = CoreGui
+ScreenGui.Parent = playerGui -- Xeno lepiej ogarnia PlayerGui niż CoreGui
 
 local Main = Instance.new("Frame")
 Main.Size = UDim2.new(0, 280, 0, 460)
@@ -79,14 +74,14 @@ Main.Parent = ScreenGui
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 8)
 
 local Stroke = Instance.new("UIStroke")
-Stroke.Color = Color3.fromRGB(180, 50, 255) -- Fioletowy akcent
+Stroke.Color = Color3.fromRGB(180, 50, 255)
 Stroke.Thickness = 1
 Stroke.Parent = Main
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 36)
 Title.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-Title.Text = "  XYZ ASSIST ULTIMATE v" .. _G.XYZASSIST_VERSION
+Title.Text = "  XYZ ASSIST v" .. _G.XYZASSIST_VERSION
 Title.TextColor3 = Color3.fromRGB(180, 50, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 12
@@ -94,7 +89,6 @@ Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = Main
 Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 8)
 
--- Przewijalna lista (ScrollFrame) na wypadek małego ekranu
 local Scroll = Instance.new("ScrollingFrame")
 Scroll.Size = UDim2.new(1, -16, 1, -52)
 Scroll.Position = UDim2.new(0, 8, 0, 44)
@@ -216,38 +210,28 @@ end
 
 -- Sekcja: Aimbot
 local lbl1 = Instance.new("TextLabel") lbl1.Size = UDim2.new(1,0,0,20) lbl1.BackgroundTransparency = 1 lbl1.Text = "--- AIMBOT ---" lbl1.TextColor3 = Color3.fromRGB(180, 50, 255) lbl1.Font = Enum.Font.GothamBold lbl1.TextSize = 12 lbl1.LayoutOrder = 1 lbl1.Parent = Scroll
-makeToggle("Magnetic Aimbot", "Aimbot", 2)
-makeToggle("Silent Aim (Camera-free)", "SilentAim", 3)
-makeSlider("FOV", "FOV", 20, 400, false, 4)
-makeSlider("Smoothness", "Smoothness", 0.01, 1, true, 5)
-makeSlider("Prediction", "Prediction", 0, 0.5, true, 6)
-makeToggle("FOV Circle", "FOVCircle", 7)
+makeToggle("Aimbot", "Aimbot", 2)
+makeSlider("FOV", "FOV", 20, 400, false, 3)
+makeSlider("Smoothness", "Smoothness", 0.01, 1, true, 4)
+makeSlider("Prediction", "Prediction", 0, 0.5, true, 5)
+makeToggle("FOV Circle", "FOVCircle", 6)
 
--- Sekcja: Visuals / ESP
-local lbl2 = Instance.new("TextLabel") lbl2.Size = UDim2.new(1,0,0,20) lbl2.BackgroundTransparency = 1 lbl2.Text = "--- VISUALS (ESP) ---" lbl2.TextColor3 = Color3.fromRGB(180, 50, 255) lbl2.Font = Enum.Font.GothamBold lbl2.TextSize = 12 lbl2.LayoutOrder = 8 lbl2.Parent = Scroll
-makeToggle("ESP Box", "ESPBox", 9)
-makeToggle("ESP Name", "ESPName", 10)
-makeToggle("ESP Health", "ESPHealth", 11)
-
--- Sekcja: Combat / Misc
-local lbl3 = Instance.new("TextLabel") lbl3.Size = UDim2.new(1,0,0,20) lbl3.BackgroundTransparency = 1 lbl3.Text = "--- COMBAT & MISC ---" lbl3.TextColor3 = Color3.fromRGB(180, 50, 255) lbl3.Font = Enum.Font.GothamBold lbl3.TextSize = 12 lbl3.LayoutOrder = 12 lbl3.Parent = Scroll
-makeToggle("Hitbox Expander", "Hitbox", 13)
-makeSlider("Hitbox Size", "HitboxSize", 2, 20, false, 14)
-makeToggle("Wall Check", "WallCheck", 15)
-makeToggle("Team Check", "TeamCheck", 16)
-makeToggle("Auto-Clicker", "AutoClicker", 17)
-makeSlider("WalkSpeed", "WalkSpeed", 16, 150, false, 18)
-makeSlider("JumpPower", "JumpPower", 50, 250, false, 19)
+-- Sekcja: Combat
+local lbl3 = Instance.new("TextLabel") lbl3.Size = UDim2.new(1,0,0,20) lbl3.BackgroundTransparency = 1 lbl3.Text = "--- COMBAT ---" lbl3.TextColor3 = Color3.fromRGB(180, 50, 255) lbl3.Font = Enum.Font.GothamBold lbl3.TextSize = 12 lbl3.LayoutOrder = 7 lbl3.Parent = Scroll
+makeToggle("Hitbox Expander", "Hitbox", 8)
+makeSlider("Hitbox Size", "HitboxSize", 2, 20, false, 9)
+makeToggle("Wall Check", "WallCheck", 10)
+makeToggle("Team Check", "TeamCheck", 11)
 
 -- ================= RYSOWANIE (DRAWING API) =================
-local FovCircle = Drawing.new("Circle")
-FovCircle.Thickness = 1.5
-FovCircle.Color = Color3.fromRGB(180, 50, 255)
-FovCircle.Filled = false
-FovCircle.Visible = false
-_G.XyzFovCircle = FovCircle
-
-_G.XyzESPDrawings = {}
+local FovCircle = nil
+pcall(function()
+    FovCircle = Drawing.new("Circle")
+    FovCircle.Thickness = 1.5
+    FovCircle.Color = Color3.fromRGB(180, 50, 255)
+    FovCircle.Filled = false
+    FovCircle.Visible = false
+end)
 
 -- ================= LOGIKA WALKI =================
 local Aiming = false
@@ -290,4 +274,58 @@ local function getClosest()
     local closest, shortest = nil, math.huge
     local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and isAlive(plr
+        if plr ~= LocalPlayer and isAlive(plr) and not isSameTeam(plr) then
+            local part = getTargetPart(plr)
+            if part and hasLOS(part) then
+                local predictedPos = getPredictedPosition(part)
+                local sp, onScreen = Camera:WorldToViewportPoint(predictedPos)
+                if onScreen then
+                    local d = (Vector2.new(sp.X, sp.Y) - center).Magnitude
+                    if d <= State.FOV and d < shortest then
+                        shortest = d
+                        closest = part
+                    end
+                end
+            end
+        end
+    end
+    return closest
+end
+
+RunService.RenderStepped:Connect(function()
+    if FovCircle then
+        FovCircle.Visible = State.FOVCircle and State.Aimbot
+        FovCircle.Radius = State.FOV
+        FovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    end
+
+    if State.Aimbot and Aiming then
+        local target = getClosest()
+        if target then
+            local targetPos = getPredictedPosition(target)
+            local goal = CFrame.new(Camera.CFrame.Position, targetPos)
+            Camera.CFrame = Camera.CFrame:Lerp(goal, math.clamp(State.Smoothness, 0.01, 1))
+        end
+    end
+
+    if State.Hitbox then
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer then
+                local part = getTargetPart(plr)
+                if part then
+                    part.Size = Vector3.new(State.HitboxSize, State.HitboxSize, State.HitboxSize)
+                    part.Transparency = 0.5
+                end
+            end
+        end
+    end
+end)
+
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.UserInputType == State.AimKey then Aiming = true end
+end)
+UserInputService.InputEnded:Connect(function(input, gp)
+    if gp then return end
+    if input.UserInputType == State.AimKey then Aiming = false end
+end)
