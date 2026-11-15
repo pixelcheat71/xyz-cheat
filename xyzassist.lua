@@ -1,9 +1,9 @@
 -- language: Luau, target: Roblox Xyz PvP, Xeno compatible
--- Skrypt owinięty w pcall, żeby wyłapać błąd i pokazać go na ekranie.
+-- Cały interfejs jest chroniony przez pcall.
 
 local success, err = pcall(function()
-    _G.XYZASSIST_VERSION = "11.0.0-DEBUG"
-    print("[xyzassist] Loading...")
+    _G.XYZASSIST_VERSION = "13.0.0-BINDS"
+    print("[xyzassist] Keybinds loaded...")
 
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
@@ -23,7 +23,6 @@ local success, err = pcall(function()
         Hitbox = false,
         HitboxSize = 4,
         AimKey = Enum.UserInputType.MouseButton2,
-        MenuKey = Enum.KeyCode.U
     }
     local Aiming = false
 
@@ -40,7 +39,44 @@ local success, err = pcall(function()
     ScreenGui.IgnoreGuiInset = true
     ScreenGui.Parent = playerGui
 
-    -- GŁÓWNE OKNO
+    -- ================= SYSTEM POWIADOMIEŃ =================
+    local NotifyGui = Instance.new("ScreenGui")
+    NotifyGui.Name = "XyzNotify"
+    NotifyGui.ResetOnSpawn = false
+    NotifyGui.Parent = playerGui
+
+    local function showNotify(text)
+        local box = Instance.new("Frame")
+        box.Size = UDim2.new(0, 200, 0, 40)
+        box.Position = UDim2.new(1, -220, 0, 20)
+        box.BackgroundColor3 = C_BG
+        box.BackgroundTransparency = 1
+        box.Parent = NotifyGui
+        
+        local stroke = Instance.new("UIStroke", box)
+        stroke.Color = C_ACCENT
+        stroke.Thickness = 1.5
+        
+        Instance.new("UICorner", box).CornerRadius = UDim.new(0, 8)
+        
+        local txt = Instance.new("TextLabel", box)
+        txt.Size = UDim2.new(1, -20, 1, 0)
+        txt.Position = UDim2.new(0, 10, 0, 0)
+        txt.BackgroundTransparency = 1
+        txt.Text = text
+        txt.TextColor3 = C_TEXT
+        txt.Font = Enum.Font.GothamMedium
+        txt.TextSize = 12
+        txt.TextXAlignment = Enum.TextXAlignment.Left
+        
+        TweenService:Create(box, TweenInfo.new(0.2), {Position = UDim2.new(1, -220, 0, 30), BackgroundTransparency = 0.1}):Play()
+        task.wait(1.5)
+        local tw = TweenService:Create(box, TweenInfo.new(0.2), {Position = UDim2.new(1, -220, 0, 0), BackgroundTransparency = 1})
+        tw:Play()
+        tw.Completed:Connect(function() box:Destroy() end)
+    end
+
+    -- ================= GŁÓWNE OKNO =================
     local Main = Instance.new("Frame")
     Main.Name = "SysUpdateFrame"
     Main.Size = UDim2.new(0, 500, 0, 300)
@@ -59,7 +95,6 @@ local success, err = pcall(function()
     MainStroke.Transparency = 0.9
     MainStroke.Parent = Main
 
-    -- GÓRNY PASEK
     local TopBar = Instance.new("Frame")
     TopBar.Size = UDim2.new(1, 0, 0, 40)
     TopBar.BackgroundTransparency = 1
@@ -76,17 +111,6 @@ local success, err = pcall(function()
     Title.TextXAlignment = Enum.TextXAlignment.Left
     Title.Parent = TopBar
 
-    local SubTitle = Instance.new("TextLabel")
-    SubTitle.Size = UDim2.new(1, -40, 0, 15)
-    SubTitle.Position = UDim2.new(0, 15, 0, 22)
-    SubTitle.BackgroundTransparency = 1
-    SubTitle.Text = "by pxq"
-    SubTitle.TextColor3 = C_SUBTEXT
-    SubTitle.Font = Enum.Font.Gotham
-    SubTitle.TextSize = 10
-    SubTitle.TextXAlignment = Enum.TextXAlignment.Left
-    SubTitle.Parent = TopBar
-
     local CloseBtn = Instance.new("TextButton")
     CloseBtn.Size = UDim2.new(0, 30, 0, 30)
     CloseBtn.Position = UDim2.new(1, -40, 0, 5)
@@ -97,7 +121,6 @@ local success, err = pcall(function()
     CloseBtn.TextSize = 14
     CloseBtn.Parent = TopBar
 
-    -- LEWY PANEL
     local Sidebar = Instance.new("Frame")
     Sidebar.Size = UDim2.new(0, 150, 1, -40)
     Sidebar.Position = UDim2.new(0, 0, 0, 40)
@@ -125,14 +148,10 @@ local success, err = pcall(function()
         btn.TextXAlignment = Enum.TextXAlignment.Left
         btn.Parent = Sidebar
         Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-        
-        btn.MouseEnter:Connect(function() TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundTransparency = 0.9, TextColor3 = C_TEXT}):Play() end)
-        btn.MouseLeave:Connect(function() TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundTransparency = 1, TextColor3 = C_SUBTEXT}):Play() end)
     end
     makeTab("Main", 10)
     makeTab("Settings", 50)
 
-    -- PRAWY PANEL
     local Content = Instance.new("Frame")
     Content.Size = UDim2.new(1, -150, 1, -40)
     Content.Position = UDim2.new(0, 150, 0, 40)
@@ -150,18 +169,7 @@ local success, err = pcall(function()
     Header.TextXAlignment = Enum.TextXAlignment.Left
     Header.Parent = Content
 
-    local SubHeader = Instance.new("TextLabel")
-    SubHeader.Size = UDim2.new(1, -30, 0, 15)
-    SubHeader.Position = UDim2.new(0, 15, 0, 30)
-    SubHeader.BackgroundTransparency = 1
-    SubHeader.Text = "Demonstration of new UI components"
-    SubHeader.TextColor3 = C_SUBTEXT
-    SubHeader.Font = Enum.Font.Gotham
-    SubHeader.TextSize = 10
-    SubHeader.TextXAlignment = Enum.TextXAlignment.Left
-    SubHeader.Parent = Content
-
-    local function makeSwitch(text, yPos, callback)
+    local function makeSwitch(text, yPos, initial, callback)
         local frame = Instance.new("Frame")
         frame.Size = UDim2.new(1, -30, 0, 35)
         frame.Position = UDim2.new(0, 15, 0, yPos)
@@ -181,13 +189,13 @@ local success, err = pcall(function()
         local switchBg = Instance.new("Frame")
         switchBg.Size = UDim2.new(0, 40, 0, 20)
         switchBg.Position = UDim2.new(1, -40, 0.5, -10)
-        switchBg.BackgroundColor3 = Config[text] and C_ACCENT or C_ELEMENT
+        switchBg.BackgroundColor3 = initial and C_ACCENT or C_ELEMENT
         switchBg.Parent = frame
         Instance.new("UICorner", switchBg).CornerRadius = UDim.new(1, 0)
         
         local knob = Instance.new("Frame")
         knob.Size = UDim2.new(0, 16, 0, 16)
-        knob.Position = Config[text] and UDim2.new(1, -18, 0, 2) or UDim2.new(0, 2, 0, 2)
+        knob.Position = initial and UDim2.new(1, -18, 0, 2) or UDim2.new(0, 2, 0, 2)
         knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         knob.Parent = switchBg
         Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
@@ -198,76 +206,22 @@ local success, err = pcall(function()
         btn.Text = ""
         btn.Parent = frame
         
-        local state = Config[text]
+        local state = initial
         btn.MouseButton1Click:Connect(function()
             state = not state
-            Config[text] = state
             callback(state)
             TweenService:Create(switchBg, TweenInfo.new(0.2), {BackgroundColor3 = state and C_ACCENT or C_ELEMENT}):Play()
             TweenService:Create(knob, TweenInfo.new(0.2), {Position = state and UDim2.new(1, -18, 0, 2) or UDim2.new(0, 2, 0, 2)}):Play()
         end)
+        
+        -- Zwracamy referencję, żeby można było zmieniać z klawiatury
+        return switchBg, knob
     end
 
-    local function makeSlider(text, yPos, min, max, default, callback)
-        local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(1, -30, 0, 45)
-        frame.Position = UDim2.new(0, 15, 0, yPos)
-        frame.BackgroundTransparency = 1
-        frame.Parent = Content
-        
-        local lbl = Instance.new("TextLabel")
-        lbl.Size = UDim2.new(1, 0, 0, 15)
-        lbl.BackgroundTransparency = 1
-        lbl.Text = text
-        lbl.TextColor3 = C_TEXT
-        lbl.Font = Enum.Font.Gotham
-        lbl.TextSize = 12
-        lbl.TextXAlignment = Enum.TextXAlignment.Left
-        lbl.Parent = frame
-        
-        local sliderBg = Instance.new("Frame")
-        sliderBg.Size = UDim2.new(1, 0, 0, 4)
-        sliderBg.Position = UDim2.new(0, 0, 0, 25)
-        sliderBg.BackgroundColor3 = C_ELEMENT
-        sliderBg.Parent = frame
-        Instance.new("UICorner", sliderBg).CornerRadius = UDim.new(1, 0)
-        
-        local sliderFill = Instance.new("Frame")
-        sliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-        sliderFill.BackgroundColor3 = C_ACCENT
-        sliderFill.Parent = sliderBg
-        Instance.new("UICorner", sliderFill).CornerRadius = UDim.new(1, 0)
-        
-        local knob = Instance.new("Frame")
-        knob.Size = UDim2.new(0, 12, 0, 12)
-        knob.Position = UDim2.new((default - min) / (max - min), -6, 0.5, -6)
-        knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        knob.Parent = sliderBg
-        Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
-        
-        local dragging = false
-        sliderBg.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
-        end)
-        UserInputService.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-        end)
-        UserInputService.InputChanged:Connect(function(input)
-            if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-                local rel = math.clamp((input.Position.X - sliderBg.AbsolutePosition.X) / sliderBg.AbsoluteSize.X, 0, 1)
-                local v = min + (max - min) * rel
-                sliderFill.Size = UDim2.new(rel, 0, 1, 0)
-                knob.Position = UDim2.new(rel, -6, 0.5, -6)
-                callback(v)
-            end
-        end)
-    end
+    local aimSwitchBg, aimKnob = makeSwitch("Aimbot [9]", 60, Config.Aimbot, function(v) Config.Aimbot = v end)
+    local hbSwitchBg, hbKnob = makeSwitch("Hitbox [8]", 105, Config.Hitbox, function(v) Config.Hitbox = v end)
 
-    makeSwitch("Aimbot", 60, function(v) Config.Aimbot = v end)
-    makeSwitch("Hitbox", 105, function(v) Config.Hitbox = v end)
-    makeSlider("Brightness Control (Smoothness)", 160, 0.01, 0.5, Config.Smoothness, function(v) Config.Smoothness = v end)
-
-    -- ANIMACJE
+    -- ================= ANIMACJE =================
     local function OpenMenu()
         if Main.Visible then return end
         Main.Visible = true
@@ -293,7 +247,7 @@ local success, err = pcall(function()
     end
     CloseBtn.MouseButton1Click:Connect(CloseMenu)
 
-    -- LOGIKA
+    -- ================= LOGIKA WALKI =================
     local function isAlive(plr)
         local char = plr.Character
         if not char then return false end
@@ -347,13 +301,46 @@ local success, err = pcall(function()
         end
     end)
 
+    -- ================= STEROWANIE KLAWIATURĄ =================
     UserInputService.InputBegan:Connect(function(input, gp)
         if gp then return end
-        if input.KeyCode == Config.MenuKey then
+        
+        -- 7 - Otwórz / Zamknij Menu
+        if input.KeyCode == Enum.KeyCode.Seven then
             if Main.Visible then CloseMenu() else OpenMenu() end
         end
+        
+        -- 9 - Aimbot
+        if input.KeyCode == Enum.KeyCode.Nine then
+            Config.Aimbot = not Config.Aimbot
+            TweenService:Create(aimSwitchBg, TweenInfo.new(0.2), {BackgroundColor3 = Config.Aimbot and C_ACCENT or C_ELEMENT}):Play()
+            TweenService:Create(aimKnob, TweenInfo.new(0.2), {Position = Config.Aimbot and UDim2.new(1, -18, 0, 2) or UDim2.new(0, 2, 0, 2)}):Play()
+            showNotify("Aimbot: " .. (Config.Aimbot and "ON" or "OFF"))
+        end
+        
+        -- 8 - Hitbox
+        if input.KeyCode == Enum.KeyCode.Eight then
+            Config.Hitbox = not Config.Hitbox
+            TweenService:Create(hbSwitchBg, TweenInfo.new(0.2), {BackgroundColor3 = Config.Hitbox and C_ACCENT or C_ELEMENT}):Play()
+            TweenService:Create(hbKnob, TweenInfo.new(0.2), {Position = Config.Hitbox and UDim2.new(1, -18, 0, 2) or UDim2.new(0, 2, 0, 2)}):Play()
+            showNotify("Hitbox: " .. (Config.Hitbox and "ON" or "OFF"))
+        end
+        
+        -- 6 - Kill Switch (Wyłącza wszystko)
+        if input.KeyCode == Enum.KeyCode.Six then
+            Config.Aimbot = false
+            Config.Hitbox = false
+            Main.Visible = false
+            TweenService:Create(aimSwitchBg, TweenInfo.new(0.2), {BackgroundColor3 = C_ELEMENT}):Play()
+            TweenService:Create(aimKnob, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0, 2)}):Play()
+            TweenService:Create(hbSwitchBg, TweenInfo.new(0.2), {BackgroundColor3 = C_ELEMENT}):Play()
+            TweenService:Create(hbKnob, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0, 2)}):Play()
+            showNotify("KILL SWITCH: ALL OFF")
+        end
+        
         if input.UserInputType == Config.AimKey then Aiming = true end
     end)
+
     UserInputService.InputEnded:Connect(function(input, gp)
         if gp then return end
         if input.UserInputType == Config.AimKey then Aiming = false end
@@ -362,14 +349,19 @@ end)
 
 if not success then
     print("[xyzassist] ERROR CAUGHT:", err)
+    local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+    if playerGui:FindFirstChild("ErrorTestGui") then playerGui.ErrorTestGui:Destroy() end
     local errorGui = Instance.new("ScreenGui")
-    errorGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    errorGui.Name = "ErrorTestGui"
+    errorGui.Parent = playerGui
     local errLabel = Instance.new("TextLabel")
-    errLabel.Size = UDim2.new(0, 400, 0, 100)
-    errLabel.Position = UDim2.new(0.5, -200, 0.5, -50)
-    errLabel.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    errLabel.Size = UDim2.new(0, 500, 0, 150)
+    errLabel.Position = UDim2.new(0.5, -250, 0.5, -75)
+    errLabel.BackgroundColor3 = Color3.fromRGB(200, 20, 20)
     errLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    errLabel.Font = Enum.Font.GothamBold
     errLabel.TextScaled = true
-    errLabel.Text = tostring(err)
+    errLabel.Text = "BŁĄD W GUI:\n" .. tostring(err)
+    errLabel.ZIndex = 999
     errLabel.Parent = errorGui
 end
