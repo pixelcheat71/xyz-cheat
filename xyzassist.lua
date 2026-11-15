@@ -1,6 +1,6 @@
 -- language: Luau, target: Roblox Xyz PvP, Xeno compatible
-_G.XYZASSIST_VERSION = "7.0.0-GLASS"
-print("[xyzassist] Modern UI loaded...")
+_G.XYZASSIST_VERSION = "10.0.0-DARKUI"
+print("[xyzassist] Dark UI loaded...")
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -13,23 +13,26 @@ local Camera = Workspace.CurrentCamera
 local playerGui = LocalPlayer:WaitForChild("PlayerGui")
 if playerGui:FindFirstChild("XyzAssistGui") then playerGui.XyzAssistGui:Destroy() end
 
+-- KONFIGURACJA
 local Config = {
     Aimbot = true,
-    FOV = 150,
-    Smoothness = 0.2,
-    Hitbox = true,
-    HitboxSize = 6,
+    FOV = 120,
+    Smoothness = 0.15,
+    Hitbox = false,
+    HitboxSize = 4,
+    WalkSpeed = 16,
     AimKey = Enum.UserInputType.MouseButton2,
     MenuKey = Enum.KeyCode.U
 }
 local Aiming = false
 
--- KOLORY (Modern Palette)
-local C_BG = Color3.fromRGB(12, 12, 16)
-local C_GLASS = Color3.fromRGB(255, 255, 255)
-local C_ACCENT = Color3.fromRGB(160, 60, 255) -- Pastelowy fiolet
+-- KOLORY (Zgapione ze screena)
+local C_BG = Color3.fromRGB(15, 15, 18)
+local C_SIDEBAR = Color3.fromRGB(22, 22, 28)
+local C_ELEMENT = Color3.fromRGB(35, 35, 42)
 local C_TEXT = Color3.fromRGB(240, 240, 245)
 local C_SUBTEXT = Color3.fromRGB(150, 150, 160)
+local C_ACCENT = Color3.fromRGB(100, 180, 255) -- Niebieski akcent
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "XyzAssistGui"
@@ -37,270 +40,273 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.Parent = playerGui
 
--- ================= 1. MODERN LOADER =================
-local Overlay = Instance.new("Frame")
-Overlay.Size = UDim2.new(1, 0, 1, 0)
-Overlay.BackgroundColor3 = C_BG
-Overlay.BorderSizePixel = 0
-Overlay.ZIndex = 10
-Overlay.Parent = ScreenGui
-
--- Efekt tła (Radial Glow)
-local BgGlow = Instance.new("ImageLabel")
-BgGlow.Size = UDim2.new(0, 600, 0, 600)
-BgGlow.Position = UDim2.new(0.5, -300, 0.5, -300)
-BgGlow.BackgroundTransparency = 1
-BgGlow.Image = "rbxassetid://1316045217" 
-BgGlow.ImageColor3 = C_ACCENT
-BgGlow.ImageTransparency = 0.7
-BgGlow.ZIndex = 10
-BgGlow.Parent = Overlay
-
-local GlowGradient = Instance.new("UIGradient")
-GlowGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, C_ACCENT),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(60, 150, 255)),
-    ColorSequenceKeypoint.new(1, C_ACCENT)
-}
-GlowGradient.Parent = BgGlow
-
-local LoaderContainer = Instance.new("Frame")
-LoaderContainer.Size = UDim2.new(0, 300, 0, 200)
-LoaderContainer.Position = UDim2.new(0.5, -150, 0.5, -100)
-LoaderContainer.BackgroundTransparency = 1
-LoaderContainer.ZIndex = 11
-LoaderContainer.Parent = Overlay
-
--- Nowoczesny Spinner (Dwa obracające się pierścienie)
-local Ring1 = Instance.new("Frame")
-Ring1.Size = UDim2.new(0, 60, 0, 60)
-Ring1.Position = UDim2.new(0.5, -30, 0, 20)
-Ring1.BackgroundTransparency = 1
-Ring1.ZIndex = 11
-Ring1.Parent = LoaderContainer
-
-local UICorner1 = Instance.new("UICorner")
-UICorner1.CornerRadius = UDim.new(1, 0)
-UICorner1.Parent = Ring1
-
-local Stroke1 = Instance.new("UIStroke")
-Stroke1.Color = C_ACCENT
-Stroke1.Thickness = 3
-Stroke1.Transparency = 0.2
-Stroke1.Parent = Ring1
-
-local Ring2 = Instance.new("Frame")
-Ring2.Size = UDim2.new(0, 40, 0, 40)
-Ring2.Position = UDim2.new(0.5, -20, 0, 30)
-Ring2.BackgroundTransparency = 1
-Ring2.ZIndex = 11
-Ring2.Parent = LoaderContainer
-Instance.new("UICorner", Ring2).CornerRadius = UDim.new(1, 0)
-local Stroke2 = Instance.new("UIStroke")
-Stroke2.Color = Color3.fromRGB(60, 150, 255)
-Stroke2.Thickness = 3
-Stroke2.Transparency = 0.2
-Stroke2.Parent = Ring2
-
--- Tekst
-local LogoText = Instance.new("TextLabel")
-LogoText.Size = UDim2.new(1, 0, 0, 40)
-LogoText.Position = UDim2.new(0, 0, 0, 90)
-LogoText.BackgroundTransparency = 1
-LogoText.Text = "XYZ ASSIST"
-LogoText.TextColor3 = C_TEXT
-LogoText.Font = Enum.Font.GothamMedium
-LogoText.TextSize = 28
-LogoText.ZIndex = 12
-LogoText.Parent = LoaderContainer
-
-local SubText = Instance.new("TextLabel")
-SubText.Size = UDim2.new(1, 0, 0, 20)
-SubText.Position = UDim2.new(0, 0, 0, 130)
-SubText.BackgroundTransparency = 1
-SubText.Text = "Inicjalizacja..."
-SubText.TextColor3 = C_SUBTEXT
-SubText.Font = Enum.Font.Gotham
-SubText.TextSize = 12
-SubText.ZIndex = 12
-SubText.Parent = LoaderContainer
-
--- Animacje Loadera
-task.spawn(function()
-    while ScreenGui.Parent do
-        for i = 0, 360, 2 do
-            GlowGradient.Rotation = i
-            task.wait(0.02)
-        end
-    end
-end)
-
-task.spawn(function()
-    local tween1 = TweenService:Create(Ring1, TweenInfo.new(1.5, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1), {Rotation = 360})
-    local tween2 = TweenService:Create(Ring2, TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1), {Rotation = -360})
-    tween1:Play()
-    tween2:Play()
-    
-    local pulse = TweenService:Create(BgGlow, TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {ImageTransparency = 0.4, Size = UDim2.new(0, 700, 0, 700)})
-    pulse:Play()
-end)
-
-task.delay(2.5, function()
-    SubText.Text = "Ładowanie modułów..."
-    task.wait(1)
-    SubText.Text = "Gotowe."
-    
-    local fadeInfo = TweenInfo.new(0.8, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-    TweenService:Create(Overlay, fadeInfo, {BackgroundTransparency = 1}):Play()
-    TweenService:Create(LoaderContainer, fadeInfo, {BackgroundTransparency = 1, Position = UDim2.new(0.5, -150, 0.5, -150)}):Play()
-    
-    task.wait(0.8)
-    Overlay:Destroy()
-    MiniBtn.Visible = true 
-end)
-
--- ================= 2. MODERN GLASS MENU =================
+-- ================= GŁÓWNE OKNO =================
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 260, 0, 180)
-Main.Position = UDim2.new(0.5, -130, 0.5, -90)
+Main.Name = "SysUpdateFrame"
+Main.Size = UDim2.new(0, 500, 0, 300)
+Main.Position = UDim2.new(0.5, -250, 0.5, -150)
 Main.BackgroundColor3 = C_BG
-Main.BackgroundTransparency = 0.2 -- Glassmorphism
 Main.BorderSizePixel = 0
 Main.Active = true
 Main.Draggable = true
 Main.Visible = false
-Main.ZIndex = 5
 Main.Parent = ScreenGui
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
 
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 16)
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(255, 255, 255)
+MainStroke.Thickness = 1
+MainStroke.Transparency = 0.9
+MainStroke.Parent = Main
 
-local Stroke = Instance.new("UIStroke")
-Stroke.Color = C_GLASS
-Stroke.Thickness = 1
-Stroke.Transparency = 0.8
-Stroke.Parent = Main
-
-local GlowBar = Instance.new("Frame")
-GlowBar.Size = UDim2.new(1, -40, 0, 3)
-GlowBar.Position = UDim2.new(0, 20, 0, 0)
-GlowBar.BackgroundColor3 = C_ACCENT
-GlowBar.BorderSizePixel = 0
-GlowBar.ZIndex = 6
-GlowBar.Parent = Main
-Instance.new("UICorner", GlowBar).CornerRadius = UDim.new(1, 0)
+-- GÓRNY PASEK (Tytuł i Zamknięcie)
+local TopBar = Instance.new("Frame")
+TopBar.Size = UDim2.new(1, 0, 0, 40)
+TopBar.BackgroundTransparency = 1
+TopBar.Parent = Main
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -40, 0, 40)
-Title.Position = UDim2.new(0, 20, 0, 10)
+Title.Size = UDim2.new(1, -40, 1, 0)
+Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "XYZ ASSIST"
+Title.Text = "Theme 'Dark'"
 Title.TextColor3 = C_TEXT
-Title.Font = Enum.Font.GothamMedium
-Title.TextSize = 18
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 14
 Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.ZIndex = 6
-Title.Parent = Main
+Title.Parent = TopBar
 
-local function makeModernBtn(text, yPos, callback)
+local SubTitle = Instance.new("TextLabel")
+SubTitle.Size = UDim2.new(1, -40, 0, 15)
+SubTitle.Position = UDim2.new(0, 15, 0, 22)
+SubTitle.BackgroundTransparency = 1
+SubTitle.Text = "by pxq"
+SubTitle.TextColor3 = C_SUBTEXT
+SubTitle.Font = Enum.Font.Gotham
+SubTitle.TextSize = 10
+SubTitle.TextXAlignment = Enum.TextXAlignment.Left
+SubTitle.Parent = TopBar
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -40, 0, 5)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = C_SUBTEXT
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 14
+CloseBtn.Parent = TopBar
+CloseBtn.MouseButton1Click:Connect(function()
+    Main.Visible = false
+end)
+
+-- ================= LEWY PANEL (Sidebar) =================
+local Sidebar = Instance.new("Frame")
+Sidebar.Size = UDim2.new(0, 150, 1, -40)
+Sidebar.Position = UDim2.new(0, 0, 0, 40)
+Sidebar.BackgroundColor3 = C_SIDEBAR
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = Main
+Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0, 12)
+-- Obcięcie rogów z prawej strony
+local SidebarCorner = Instance.new("Frame")
+SidebarCorner.Size = UDim2.new(0, 12, 1, 0)
+SidebarCorner.Position = UDim2.new(1, -12, 0, 0)
+SidebarCorner.BackgroundColor3 = C_SIDEBAR
+SidebarCorner.BorderSizePixel = 0
+SidebarCorner.Parent = Sidebar
+
+local function makeTab(name, yPos)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -40, 0, 45)
-    btn.Position = UDim2.new(0, 20, 0, yPos)
-    btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    btn.BackgroundTransparency = 0.9
-    btn.Text = text
-    btn.TextColor3 = C_TEXT
+    btn.Size = UDim2.new(1, -20, 0, 35)
+    btn.Position = UDim2.new(0, 10, 0, yPos)
+    btn.BackgroundTransparency = 1
+    btn.Text = "  " .. name
+    btn.TextColor3 = C_SUBTEXT
     btn.Font = Enum.Font.GothamMedium
-    btn.TextSize = 14
+    btn.TextSize = 12
     btn.TextXAlignment = Enum.TextXAlignment.Left
-    btn.AutoButtonColor = false
-    btn.ZIndex = 6
-    btn.Parent = Main
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+    btn.Parent = Sidebar
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
     
-    local btnStroke = Instance.new("UIStroke")
-    btnStroke.Color = C_GLASS
-    btnStroke.Thickness = 1
-    btnStroke.Transparency = 0.9
-    btnStroke.Parent = btn
-
-    -- Padding tekstu
-    local pad = Instance.new("UIPadding", btn)
-    pad.PaddingLeft = UDim.new(0, 15)
-
-    -- Hover Effect
     btn.MouseEnter:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundTransparency = 0.8}):Play()
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundTransparency = 0.9, TextColor3 = C_TEXT}):Play()
     end)
     btn.MouseLeave:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundTransparency = 0.9}):Play()
-    end)
-
-    btn.MouseButton1Click:Connect(function()
-        callback()
-        btn.TextColor3 = C_ACCENT
-        task.wait(0.15)
-        btn.TextColor3 = C_TEXT
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundTransparency = 1, TextColor3 = C_SUBTEXT}):Play()
     end)
 end
 
-makeModernBtn("Aimbot: ON", 65, function() Config.Aimbot = not Config.Aimbot; print("Aimbot:", Config.Aimbot) end)
-makeModernBtn("Hitbox: ON", 120, function() Config.Hitbox = not Config.Hitbox; print("Hitbox:", Config.Hitbox) end)
+makeTab("Main", 10)
+makeTab("Settings", 50)
 
--- ================= 3. MINI PRZYCISK (Dolny róg) =================
-local MiniBtn = Instance.new("TextButton")
-MiniBtn.Size = UDim2.new(0, 50, 0, 50)
-MiniBtn.Position = UDim2.new(1, -70, 1, -70)
-MiniBtn.BackgroundColor3 = C_BG
-MiniBtn.BackgroundTransparency = 0.2
-MiniBtn.Text = "XYZ"
-MiniBtn.TextColor3 = C_TEXT
-MiniBtn.Font = Enum.Font.GothamBold
-MiniBtn.TextSize = 14
-MiniBtn.BorderSizePixel = 0
-MiniBtn.Visible = false
-MiniBtn.ZIndex = 5
-MiniBtn.Parent = ScreenGui
+-- ================= PRAWY PANEL (Zawartość) =================
+local Content = Instance.new("Frame")
+Content.Size = UDim2.new(1, -150, 1, -40)
+Content.Position = UDim2.new(0, 150, 0, 40)
+Content.BackgroundTransparency = 1
+Content.Parent = Main
 
-Instance.new("UICorner", MiniBtn).CornerRadius = UDim.new(0, 12)
-local MiniStroke = Instance.new("UIStroke")
-MiniStroke.Color = C_ACCENT
-MiniStroke.Thickness = 1
-MiniStroke.Transparency = 0.5
-MiniStroke.Parent = MiniBtn
+local Header = Instance.new("TextLabel")
+Header.Size = UDim2.new(1, -30, 0, 30)
+Header.Position = UDim2.new(0, 15, 0, 10)
+Header.BackgroundTransparency = 1
+Header.Text = "Interactive Elements"
+Header.TextColor3 = C_TEXT
+Header.Font = Enum.Font.GothamBold
+Header.TextSize = 16
+Header.TextXAlignment = Enum.TextXAlignment.Left
+Header.Parent = Content
+
+local SubHeader = Instance.new("TextLabel")
+SubHeader.Size = UDim2.new(1, -30, 0, 15)
+SubHeader.Position = UDim2.new(0, 15, 0, 30)
+SubHeader.BackgroundTransparency = 1
+SubHeader.Text = "Demonstration of new UI components"
+SubHeader.TextColor3 = C_SUBTEXT
+SubHeader.Font = Enum.Font.Gotham
+SubHeader.TextSize = 10
+SubHeader.TextXAlignment = Enum.TextXAlignment.Left
+SubHeader.Parent = Content
+
+-- Elementy (Switch i Suwak)
+local function makeSwitch(text, yPos, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -30, 0, 35)
+    frame.Position = UDim2.new(0, 15, 0, yPos)
+    frame.BackgroundTransparency = 1
+    frame.Parent = Content
+    
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -60, 1, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.TextColor3 = C_TEXT
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 12
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = frame
+    
+    local switchBg = Instance.new("Frame")
+    switchBg.Size = UDim2.new(0, 40, 0, 20)
+    switchBg.Position = UDim2.new(1, -40, 0.5, -10)
+    switchBg.BackgroundColor3 = Config[text] and C_ACCENT or C_ELEMENT
+    switchBg.Parent = frame
+    Instance.new("UICorner", switchBg).CornerRadius = UDim.new(1, 0)
+    
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.new(0, 16, 0, 16)
+    knob.Position = Config[text] and UDim2.new(1, -18, 0, 2) or UDim2.new(0, 2, 0, 2)
+    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    knob.Parent = switchBg
+    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+    
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 1, 0)
+    btn.BackgroundTransparency = 1
+    btn.Text = ""
+    btn.Parent = frame
+    
+    local state = Config[text]
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        Config[text] = state
+        callback(state)
+        TweenService:Create(switchBg, TweenInfo.new(0.2), {BackgroundColor3 = state and C_ACCENT or C_ELEMENT}):Play()
+        TweenService:Create(knob, TweenInfo.new(0.2), {Position = state and UDim2.new(1, -18, 0, 2) or UDim2.new(0, 2, 0, 2)}):Play()
+    end)
+end
+
+local function makeSlider(text, yPos, min, max, default, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -30, 0, 45)
+    frame.Position = UDim2.new(0, 15, 0, yPos)
+    frame.BackgroundTransparency = 1
+    frame.Parent = Content
+    
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, 0, 0, 15)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.TextColor3 = C_TEXT
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 12
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = frame
+    
+    local sliderBg = Instance.new("Frame")
+    sliderBg.Size = UDim2.new(1, 0, 0, 4)
+    sliderBg.Position = UDim2.new(0, 0, 0, 25)
+    sliderBg.BackgroundColor3 = C_ELEMENT
+    sliderBg.Parent = frame
+    Instance.new("UICorner", sliderBg).CornerRadius = UDim.new(1, 0)
+    
+    local sliderFill = Instance.new("Frame")
+    sliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    sliderFill.BackgroundColor3 = C_ACCENT
+    sliderFill.Parent = sliderBg
+    Instance.new("UICorner", sliderFill).CornerRadius = UDim.new(1, 0)
+    
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.new(0, 12, 0, 12)
+    knob.Position = UDim2.new((default - min) / (max - min), -6, 0.5, -6)
+    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    knob.Parent = sliderBg
+    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+    
+    local dragging = false
+    sliderBg.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local rel = math.clamp((input.Position.X - sliderBg.AbsolutePosition.X) / sliderBg.AbsoluteSize.X, 0, 1)
+            local v = min + (max - min) * rel
+            sliderFill.Size = UDim2.new(rel, 0, 1, 0)
+            knob.Position = UDim2.new(rel, -6, 0.5, -6)
+            callback(v)
+        end
+    end)
+end
+
+makeSwitch("Aimbot", 60, function(v) Config.Aimbot = v end)
+makeSwitch("Hitbox", 105, function(v) Config.Hitbox = v end)
+makeSlider("Brightness Control (Smoothness)", 160, 0.01, 0.5, Config.Smoothness, function(v) Config.Smoothness = v end)
 
 -- ================= ANIMACJE MENU =================
 local function OpenMenu()
     if Main.Visible then return end
     Main.Visible = true
-    Main.Position = UDim2.new(0.5, -130, 0.5, -70)
     Main.BackgroundTransparency = 1
+    Main.Size = UDim2.new(0, 480, 0, 280)
+    Main.Position = UDim2.new(0.5, -240, 0.5, -140)
     
-    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-    TweenService:Create(Main, tweenInfo, {
-        Position = UDim2.new(0.5, -130, 0.5, -90),
-        BackgroundTransparency = 0.2
+    TweenService:Create(Main, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 500, 0, 300),
+        Position = UDim2.new(0.5, -250, 0.5, -150),
+        BackgroundTransparency = 0
     }):Play()
-    
-    MiniBtn.Visible = false
 end
 
 local function CloseMenu()
     if not Main.Visible then return end
-    local tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
-    local tween = TweenService:Create(Main, tweenInfo, {
-        Position = UDim2.new(0.5, -130, 0.5, -50),
+    local tween = TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        Size = UDim2.new(0, 480, 0, 280),
+        Position = UDim2.new(0.5, -240, 0.5, -140),
         BackgroundTransparency = 1
     })
     tween:Play()
     tween.Completed:Connect(function()
         Main.Visible = false
-        MiniBtn.Visible = true
     end)
 end
 
-MiniBtn.MouseButton1Click:Connect(OpenMenu)
+CloseBtn.MouseButton1Click:Connect(CloseMenu)
 
--- ================= LOGIKA WALKI =================
+-- ================= LOGIKA WALKI (Stealth) =================
 local function isAlive(plr)
     local char = plr.Character
     if not char then return false end
@@ -357,6 +363,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+-- ================= STEROWANIE =================
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
     if input.KeyCode == Config.MenuKey then
